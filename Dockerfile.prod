@@ -1,0 +1,42 @@
+    # Production build stage
+    FROM node:23.6.0-alpine AS builder
+    WORKDIR /app
+
+    # Build arguments
+    ARG NODE_ENV=production
+    ARG HASURA_ENDPOINT
+    ARG HASURA_GRAPHQL_ADMIN_SECRET
+    ARG GOOGLE_MAPS_API_KEY
+
+    # Set environment variables
+    ENV NODE_ENV=$NODE_ENV
+    ENV HASURA_ENDPOINT=$HASURA_ENDPOINT
+    ENV HASURA_GRAPHQL_ADMIN_SECRET=$HASURA_GRAPHQL_ADMIN_SECRET
+    ENV GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY
+        
+    COPY package*.json ./
+    RUN npm ci --production=false
+    COPY . .
+    RUN npm run build
+
+    # Production runtime stage
+    FROM node:23.6.0-alpine AS production-runtime
+    WORKDIR /app
+
+    # Build arguments for runtime stage
+    ARG NODE_ENV=production
+    ARG HASURA_ENDPOINT
+    ARG HASURA_GRAPHQL_ADMIN_SECRET
+    ARG GOOGLE_MAPS_API_KEY
+
+    # Set environment variables for runtime
+    ENV NODE_ENV=$NODE_ENV
+    ENV HASURA_ENDPOINT=$HASURA_ENDPOINT
+    ENV HASURA_GRAPHQL_ADMIN_SECRET=$HASURA_GRAPHQL_ADMIN_SECRET
+    ENV GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY
+
+    COPY --from=builder /app/dist ./dist
+    COPY --from=builder /app/package*.json ./
+    RUN npm ci --only=production
+    EXPOSE 3000
+    CMD ["node", "dist/main"]
