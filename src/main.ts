@@ -10,8 +10,9 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
   });
+  console.log('PORT', process.env.PORT);
 
-  await app.listen(process.env.PORT || 30003);
+  await app.listen(process.env.PORT || 3003);
 }
 
 bootstrap();

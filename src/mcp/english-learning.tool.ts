@@ -448,4 +448,73 @@ export class EnglishLearningTool {
       throw new Error(`Lỗi khi lấy tiến độ người dùng: ${error.message}`);
     }
   }
+
+  @Tool({
+    name: 'get_question_by_id',
+    description: 'Lấy câu hỏi và tất cả đáp án theo ID câu hỏi',
+    parameters: z.object({
+      question_id: z.number().describe('ID của câu hỏi cần lấy'),
+    }),
+  })
+  async getQuestionById({ question_id }, context: Context) {
+    await context.reportProgress({ progress: 25, total: 100 });
+
+    try {
+      const question = await this.prisma.question.findUnique({
+        where: { id: question_id },
+        include: {
+          answerOptions: {
+            orderBy: { optionLabel: 'asc' }
+          },
+          exam: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              difficulty: true
+            }
+          }
+        }
+      });
+
+      if (!question) {
+        throw new Error(`Không tìm thấy câu hỏi với ID: ${question_id}`);
+      }
+
+      await context.reportProgress({ progress: 100, total: 100 });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              question: {
+                id: question.id,
+                content: question.content,
+                question_type: question.questionType,
+                order_index: question.orderIndex,
+                points: question.points,
+                created_at: question.createdAt,
+                updated_at: question.updatedAt,
+                exam_info: question.exam
+              },
+              answer_options: question.answerOptions.map(option => ({
+                id: option.id,
+                content: option.content,
+                is_correct: option.isCorrect,
+                option_label: option.optionLabel,
+                created_at: option.createdAt,
+                updated_at: option.updatedAt
+              })),
+              total_options: question.answerOptions.length,
+              correct_answers: question.answerOptions.filter(option => option.isCorrect).length,
+              timestamp: new Date().toISOString(),
+            }, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      throw new Error(`Lỗi khi lấy câu hỏi: ${error.message}`);
+    }
+  }
 }
