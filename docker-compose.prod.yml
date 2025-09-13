@@ -1,18 +1,41 @@
 services:
-  functions:
+  english-learning-mcp:
     build:
-      image: registry.crbgroup.cloud/pho-mcp-server:latest
-      # dockerfile: Dockerfile.prod
+      context: .
+      dockerfile: Dockerfile.prod
+      target: production
+    image: english-learning-mcp-server:latest
+    container_name: english-learning-mcp-server
     env_file:
       - .env
     environment:
       - NODE_ENV=production
-    restart: always
+      - PORT=3003
+    restart: unless-stopped
     ports:
-      - "${PORT}:3000"
+      - "${PORT:-3003}:3003"
     networks:
       my_custom_network:
-        ipv4_address: ${APP_IP}
+        ipv4_address: ${APP_IP:-10.0.0.6}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   my_custom_network:
